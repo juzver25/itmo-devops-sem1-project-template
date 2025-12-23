@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
+export POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+export POSTGRES_DB="${POSTGRES_DB:-project-sem-1}"
+export POSTGRES_USER="${POSTGRES_USER:-validator}"
+export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-val1dat0r}"
+
 export DB_HOST="${DB_HOST:-$POSTGRES_HOST}"
 export DB_PORT="${DB_PORT:-$POSTGRES_PORT}"
 export DB_NAME="${DB_NAME:-$POSTGRES_DB}"
@@ -20,8 +26,6 @@ elif [ -f "./main.go" ]; then
 elif go list -f '{{.Name}}' . 2>/dev/null | grep -q '^main$'; then
   ENTRY="."
 else
-  echo "Cannot detect entry point to run."
-  echo "Repo files:"
   ls -la
   echo "Go packages:"
   go list ./...  true
@@ -37,7 +41,16 @@ for i in {1..120}; do
     echo "Server is up."
     exit 0
   fi
+
+  if ! kill -0 "$(cat /tmp/app.pid)" >/dev/null 2>&1; then
+    echo "Server process exited early. Log:"
+    tail -n 200 /tmp/app.log  true
+    exit 1
+  fi
+
+  sleep 0.5
 done
 
 echo "Server failed to start in time. Log:"
+tail -n 200 /tmp/app.log || true
 exit 1
