@@ -20,7 +20,6 @@ func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 
 	ct := r.Header.Get("Content-Type")
 	if strings.HasPrefix(ct, "multipart/form-data") {
-		// tests.sh шлёт файл именно так: -F "file=@..."
 		if err := r.ParseMultipartForm(32 << 20); err != nil {
 			http.Error(w, "cannot parse multipart", http.StatusBadRequest)
 			return
@@ -39,7 +38,6 @@ func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// старый режим: zip прямо в body
 		var err error
 		body, err = io.ReadAll(r.Body)
 		if err != nil {
@@ -222,15 +220,15 @@ func insertRow(ctx context.Context, tx pgx.Tx, rec []string, idx colIndex) error
 		return err
 	}
 
-	createdAt, err := time.Parse("2006-01-02", dateStr)
+	createDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return err
 	}
 
 	_, err = tx.Exec(ctx,
-		`INSERT INTO prices (product_id, created_at, name, category, price)
-     VALUES ($1, $2, $3, $4, $5)`,
-		id, createdAt, name, category, price,
+		`INSERT INTO prices (id, name, category, price, create_date)
+     VALUES ($1,$2,$3,$4,$5)`,
+		id, name, category, price, createDate,
 	)
 	return err
 }
