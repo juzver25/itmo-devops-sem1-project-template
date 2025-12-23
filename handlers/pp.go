@@ -16,12 +16,37 @@ import (
 func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "cannot read body", http.StatusBadRequest)
-		return
-	}
+	var body []byte
 
+	ct := r.Header.Get("Content-Type")
+	if strings.HasPrefix(ct, "multipart/form-data") {
+		// tests.sh шлёт файл именно так: -F "file=@..."
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			http.Error(w, "cannot parse multipart", http.StatusBadRequest)
+			return
+		}
+
+		f, _, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "file field is required", http.StatusBadRequest)
+			return
+		}
+		defer f.Close()
+
+		body, err = io.ReadAll(f)
+		if err != nil {
+			http.Error(w, "cannot read uploaded file", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// старый режим: zip прямо в body
+		var err error
+		body, err = io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "cannot read body", http.StatusBadRequest)
+			return
+		}
+	}
 	csvRC, err := getCSVFromZipBody(body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
