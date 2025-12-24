@@ -31,24 +31,24 @@ func getPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 
 	for rows.Next() {
 		var (
-			id        int64
-			createdAt time.Time
-			name      string
-			category  string
-			price     float64
+			id         int64
+			name       string
+			category   string
+			price      float64
+			createDate time.Time
 		)
 
-		if err := rows.Scan(&id, &createdAt, &name, &category, &price); err != nil {
+		if err := rows.Scan(&id, &name, &category, &price, &createDate); err != nil {
 			http.Error(w, "db scan failed", http.StatusInternalServerError)
 			return
 		}
 
 		rec := []string{
 			strconv.FormatInt(id, 10),
-			create_date.Format("2006-01-02"),
 			name,
 			category,
 			formatPrice2(price),
+			createDate.Format("2006-01-02"),
 		}
 
 		if err := cw.Write(rec); err != nil {
