@@ -15,9 +15,9 @@ func getPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	rows, err := pool.Query(ctx, `
-    SELECT product_id, created_at, name, category, price
+    SELECT id, name, category, price, create_date
     FROM prices
-    ORDER BY product_id ASC
+    ORDER BY id ASC
   `)
 	if err != nil {
 		http.Error(w, "db query failed", http.StatusInternalServerError)
@@ -45,7 +45,7 @@ func getPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 
 		rec := []string{
 			strconv.FormatInt(id, 10),
-			createdAt.Format("2006-01-02"),
+			createDate.Format("2006-01-02"),
 			name,
 			category,
 			formatPrice2(price),
