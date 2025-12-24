@@ -45,7 +45,7 @@ func getPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 
 		rec := []string{
 			strconv.FormatInt(id, 10),
-			createDate.Format("2006-01-02"),
+			create_date.Format("2006-01-02"),
 			name,
 			category,
 			formatPrice2(price),
