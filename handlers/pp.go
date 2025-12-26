@@ -98,12 +98,6 @@ func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	if err := tx.Commit(ctx); err != nil {
-		http.Error(w, "db commit failed", http.StatusInternalServerError)
-		return
-	}
-
 	var totalItems int64
 	var totalCategories int64
 	var totalPrice float64
@@ -114,7 +108,12 @@ func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
       COUNT(DISTINCT category),
       COALESCE(SUM(price)::double precision, 0)
     FROM prices
-  `).Scan(&totalItems, &totalCategories, &totalPrice)
+`).Scan(&totalItems, &totalCategories, &totalPrice)
+	if err != nil {
+		http.Error(w, "db stats failed", http.StatusInternalServerError)
+		return
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		http.Error(w, "db commit failed", http.StatusInternalServerError)
 		return
@@ -205,26 +204,22 @@ func detectOrderByData(first []string) colIndex {
 func insertRow(ctx context.Context, tx pgx.Tx, rec []string, idx colIndex) error {
 	name := rec[idx.name]
 	category := rec[idx.category]
+
 	priceStr := strings.TrimSpace(rec[idx.price])
-	dateStr := strings.TrimSpace(rec[idx.date])
-
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return err
-	}
-
 	price, err := strconv.ParseFloat(priceStr, 64)
 	if err != nil {
 		return err
 	}
 
+	dateStr := strings.TrimSpace(rec[idx.date])
 	createDate, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return err
 	}
+
 	_, err = tx.Exec(ctx,
 		`INSERT INTO prices (name, category, price, create_date)
-   VALUES ($1,$2,$3,$4)`,
+     VALUES ($1,$2,$3,$4)`,
 		name, category, price, createDate,
 	)
 	return err
