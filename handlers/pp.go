@@ -108,18 +108,17 @@ func postPrices(pool *pgxpool.Pool, w http.ResponseWriter, r *http.Request) {
 	var totalCategories int64
 	var totalPrice float64
 
-	err = pool.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
     SELECT
       COUNT(*),
       COUNT(DISTINCT category),
       COALESCE(SUM(price)::double precision, 0)
     FROM prices
   `).Scan(&totalItems, &totalCategories, &totalPrice)
-	if err != nil {
-		http.Error(w, "db stats failed", http.StatusInternalServerError)
+	if err := tx.Commit(ctx); err != nil {
+		http.Error(w, "db commit failed", http.StatusInternalServerError)
 		return
 	}
-
 	resp := map[string]any{
 		"total_items":      totalItems,
 		"total_categories": totalCategories,
@@ -224,11 +223,10 @@ func insertRow(ctx context.Context, tx pgx.Tx, rec []string, idx colIndex) error
 	if err != nil {
 		return err
 	}
-
 	_, err = tx.Exec(ctx,
-		`INSERT INTO prices (id, name, category, price, create_date)
-     VALUES ($1,$2,$3,$4,$5)`,
-		id, name, category, price, createDate,
+		`INSERT INTO prices (name, category, price, create_date)
+   VALUES ($1,$2,$3,$4)`,
+		name, category, price, createDate,
 	)
 	return err
 }
