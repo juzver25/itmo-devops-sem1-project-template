@@ -203,7 +203,6 @@ func detectOrderByData(first []string) colIndex {
 }
 
 func insertRow(ctx context.Context, tx pgx.Tx, rec []string, idx colIndex) error {
-	idStr := strings.TrimSpace(rec[idx.id])
 	name := rec[idx.name]
 	category := rec[idx.category]
 	priceStr := strings.TrimSpace(rec[idx.price])
